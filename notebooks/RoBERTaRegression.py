@@ -49,18 +49,15 @@ valid_df = pd.read_csv("../data/training_data/valid.csv")
 # In[4]:
 
 
-train_loader = src.dataloader.DataframeSentenceLoader(train_df)
-
-
-# In[5]:
-
-
-valid_loader = src.dataloader.DataframeSentenceLoader(valid_df)
+valid_data = src.dataloader.EyeTrackingCSV(valid_df)
 
 
 # In[ ]:
 
 
-for sent in valid_loader:
-  print(sent)
+valid_loader = torch.utils.data.DataLoader(valid_data, batch_size=4, shuffle=False)
+
+for X_texts, X_tokens, X_ids, X_attns in valid_loader:
+  print(X_tokens)
+  break
 
