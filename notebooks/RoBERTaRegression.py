@@ -46,18 +46,17 @@ valid_df = pd.read_csv("../data/training_data/valid.csv")
 #model = src.model.RobertaRegressionModel()
 
 
-# In[4]:
+# In[8]:
 
 
 valid_data = src.dataloader.EyeTrackingCSV(valid_df)
 
 
-# In[ ]:
+# In[9]:
 
 
-valid_loader = torch.utils.data.DataLoader(valid_data, batch_size=4, shuffle=False)
+valid_loader = torch.utils.data.DataLoader(valid_data, batch_size=16, shuffle=False)
 
-for X_texts, X_tokens, X_ids, X_attns in valid_loader:
-  print(X_tokens)
-  break
+for X_tokens, X_ids, X_attns, Y in valid_loader:
+  print(Y.shape)
 

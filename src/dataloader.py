@@ -15,12 +15,13 @@ class EyeTrackingCSV(torch.utils.data.Dataset):
     self.texts = []
     for i in range(self.num_sentences):
       rows = self.df[self.df.sentence_id == i]
-      text = ' '.join(rows.word.tolist()).replace('<EOS>', '')
+      text = rows.word.tolist()
+      text[-1] = text[-1].replace('<EOS>', '')
       self.texts.append(text)
 
     # Tokenize all sentences
-    self.tokenizer = transformers.RobertaTokenizer.from_pretrained(model_name)
-    self.ids = self.tokenizer(self.texts, padding=True)
+    self.tokenizer = transformers.RobertaTokenizerFast.from_pretrained(model_name, add_prefix_space=True)
+    self.ids = self.tokenizer(self.texts, padding=True, is_split_into_words=True, return_offsets_mapping=True)
 
 
   def __len__(self):
@@ -29,14 +30,21 @@ class EyeTrackingCSV(torch.utils.data.Dataset):
 
   def __getitem__(self, ix):
     input_ids = self.ids['input_ids'][ix]
+    offset_mapping = self.ids['offset_mapping'][ix]
+    attention_mask = self.ids['attention_mask'][ix]
     input_tokens = [self.tokenizer.convert_ids_to_tokens(x) for x in input_ids]
 
-    # Todo: Align tokens with df
-    rows = self.df[self.df.sentence_id == ix]
+    # First subword of each token starts with special character
+    is_first_subword = [t[0] == 'Ġ' for t in input_tokens]
+
+    features = torch.zeros((len(input_ids), 5))
+    features[is_first_subword] = torch.Tensor(
+      self.df[self.df.sentence_id == ix][['nFix', 'FFD', 'GPT', 'TRT', 'fixProp']].to_numpy()
+    )
 
     return (
-      self.texts[ix],
       input_tokens,
       input_ids,
-      self.ids['attention_mask'][ix]
+      attention_mask,
+      features,
     )
