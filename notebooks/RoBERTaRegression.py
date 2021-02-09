@@ -38,23 +38,17 @@ train_df = pd.read_csv("../data/training_data/train.csv")
 valid_df = pd.read_csv("../data/training_data/valid.csv")
 
 
-# ## Load model
+# ## Fine-tune model
 
 # In[3]:
 
 
 device = torch.device('cuda')
 model = src.model.RobertaRegressionModel().to(device)
+train_data = src.dataloader.EyeTrackingCSV(train_df)
 
 
 # In[4]:
-
-
-train_data = src.dataloader.EyeTrackingCSV(train_df)
-valid_data = src.dataloader.EyeTrackingCSV(valid_df)
-
-
-# In[5]:
 
 
 random.seed(12345)
@@ -66,9 +60,51 @@ for epoch in range(3):
     optim.zero_grad()
     X_ids = X_ids.to(device)
     X_attns = X_attns.to(device)
-    predict_mask = torch.sum(Y_true, axis=2) > 0
+    predict_mask = torch.sum(Y_true, axis=2) >= 0
     Y_pred = model(X_ids, X_attns, predict_mask).cpu()
-    loss = torch.sum(torch.abs(Y_true - Y_pred))
+    loss = torch.sum((Y_true - Y_pred)**2)
     loss.backward()
     optim.step()
+
+
+# ## Make predictions
+
+# In[5]:
+
+
+valid_data = src.dataloader.EyeTrackingCSV(valid_df)
+valid_loader = torch.utils.data.DataLoader(valid_data, batch_size=16)
+
+predict_df = valid_df.copy()
+predict_df[['nFix', 'FFD', 'GPT', 'TRT', 'fixProp']] = 9999
+
+
+# In[6]:
+
+
+# Assume one-to-one matching between nonzero predictions and
+predictions = []
+for X_tokens, X_ids, X_attns, Y_true in valid_loader:
+  X_ids = X_ids.to(device)
+  X_attns = X_attns.to(device)
+  predict_mask = torch.sum(Y_true, axis=2) >= 0
+  with torch.no_grad():
+    Y_pred = model(X_ids, X_attns, predict_mask).cpu()
+  
+  for batch_ix in range(X_ids.shape[0]):
+    for row_ix in range(X_ids.shape[1]):
+      if Y_pred[batch_ix, row_ix].sum() >= 0:
+        predictions.append(Y_pred[batch_ix, row_ix])
+
+
+# In[7]:
+
+
+predict_df[['nFix', 'FFD', 'GPT', 'TRT', 'fixProp']] = np.vstack(predictions)
+
+
+# In[8]:
+
+
+src.eval_metric.evaluate(predict_df, valid_df)
 

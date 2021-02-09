@@ -37,7 +37,7 @@ class EyeTrackingCSV(torch.utils.data.Dataset):
     # First subword of each token starts with special character
     is_first_subword = [t[0] == 'Ġ' for t in input_tokens]
 
-    features = torch.zeros((len(input_ids), 5))
+    features = -torch.ones((len(input_ids), 5))
     features[is_first_subword] = torch.Tensor(
       self.df[self.df.sentence_id == ix][['nFix', 'FFD', 'GPT', 'TRT', 'fixProp']].to_numpy()
     )

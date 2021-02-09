@@ -23,7 +23,7 @@ class RobertaRegressionModel(torch.nn.Module):
     # (B, seqlen, 5)
     Y_pred = self.linear(temp)
 
-    # Where predict_mask == 0, set Y_pred to 0 also
-    Y_pred[predict_mask == 0] = 0
+    # Where predict_mask == 0, set Y_pred to -1
+    Y_pred[predict_mask == 0] = -1
 
     return Y_pred
