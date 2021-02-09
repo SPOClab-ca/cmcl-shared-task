@@ -44,7 +44,7 @@ class EyeTrackingCSV(torch.utils.data.Dataset):
 
     return (
       input_tokens,
-      input_ids,
-      attention_mask,
+      torch.LongTensor(input_ids),
+      torch.LongTensor(attention_mask),
       features,
     )

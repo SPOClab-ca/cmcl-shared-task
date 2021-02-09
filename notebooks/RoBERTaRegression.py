@@ -43,20 +43,32 @@ valid_df = pd.read_csv("../data/training_data/valid.csv")
 # In[3]:
 
 
-#model = src.model.RobertaRegressionModel()
+device = torch.device('cuda')
+model = src.model.RobertaRegressionModel().to(device)
 
 
-# In[8]:
+# In[4]:
 
 
+train_data = src.dataloader.EyeTrackingCSV(train_df)
 valid_data = src.dataloader.EyeTrackingCSV(valid_df)
 
 
-# In[9]:
+# In[5]:
 
 
-valid_loader = torch.utils.data.DataLoader(valid_data, batch_size=16, shuffle=False)
+random.seed(12345)
+train_loader = torch.utils.data.DataLoader(train_data, batch_size=16, shuffle=True)
+optim = torch.optim.Adam(model.parameters(), lr=5e-5)
 
-for X_tokens, X_ids, X_attns, Y in valid_loader:
-  print(Y.shape)
+for epoch in range(3):
+  for X_tokens, X_ids, X_attns, Y_true in train_loader:
+    optim.zero_grad()
+    X_ids = X_ids.to(device)
+    X_attns = X_attns.to(device)
+    predict_mask = torch.sum(Y_true, axis=2) > 0
+    Y_pred = model(X_ids, X_attns, predict_mask).cpu()
+    loss = torch.sum(torch.abs(Y_true - Y_pred))
+    loss.backward()
+    optim.step()
 
