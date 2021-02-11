@@ -13,7 +13,10 @@ class RobertaRegressionModel(torch.nn.Module):
     super(RobertaRegressionModel, self).__init__()
 
     self.roberta = transformers.RobertaModel.from_pretrained(model_name)
-    self.linear = torch.nn.Linear(768, 5)
+
+    self.decoder = torch.nn.Sequential(
+      torch.nn.Linear(768, 5)
+    )
 
 
   def forward(self, X_ids, X_attns, predict_mask):
@@ -25,10 +28,10 @@ class RobertaRegressionModel(torch.nn.Module):
     Output: (B, seqlen, 5) tensor of predictions, only predict when predict_mask == 1
     """
     # (B, seqlen, 768)
-    temp = self.roberta(X_ids, X_attns).last_hidden_state
+    temp = self.roberta(X_ids, attention_mask=X_attns).last_hidden_state
 
     # (B, seqlen, 5)
-    Y_pred = self.linear(temp)
+    Y_pred = self.decoder(temp)
 
     # Where predict_mask == 0, set Y_pred to -1
     Y_pred[predict_mask == 0] = -1
@@ -43,24 +46,31 @@ class ModelTrainer():
     self.model = RobertaRegressionModel(model_name).to(device)
 
 
-  def train(self, train_df, num_epochs=3, lr=3e-5, batch_size=16):
+  def train(self, train_df, valid_df=None, num_epochs=5, lr=5e-5, batch_size=16):
     train_data = src.dataloader.EyeTrackingCSV(train_df)
 
     random.seed(12345)
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
-    optim = torch.optim.Adam(self.model.parameters(), lr=lr)
+    opt = torch.optim.Adam(self.model.parameters(), lr=lr)
+    mse = torch.nn.MSELoss()
 
     self.model.train()
     for epoch in range(num_epochs):
       for X_tokens, X_ids, X_attns, Y_true in train_loader:
-        optim.zero_grad()
+        opt.zero_grad()
         X_ids = X_ids.to(device)
         X_attns = X_attns.to(device)
+        Y_true = Y_true.to(device)
         predict_mask = torch.sum(Y_true, axis=2) >= 0
-        Y_pred = self.model(X_ids, X_attns, predict_mask).cpu()
-        loss = torch.sum(torch.abs(Y_true - Y_pred))
+        Y_pred = self.model(X_ids, X_attns, predict_mask)
+        loss = mse(Y_true, Y_pred)
         loss.backward()
-        optim.step()
+        opt.step()
+
+      print('Epoch:', epoch+1)
+      if valid_df is not None:
+        predict_df = self.predict(valid_df)
+        src.eval_metric.evaluate(predict_df, valid_df)
 
 
   def predict(self, valid_df):
@@ -82,8 +92,10 @@ class ModelTrainer():
       
       for batch_ix in range(X_ids.shape[0]):
         for row_ix in range(X_ids.shape[1]):
-          if Y_pred[batch_ix, row_ix].sum() >= 0:
-            predictions.append(Y_pred[batch_ix, row_ix])
+          token_prediction = Y_pred[batch_ix, row_ix]
+          if token_prediction.sum() != -5.0:
+            token_prediction[token_prediction < 0] = 0
+            predictions.append(token_prediction)
 
     predict_df[['nFix', 'FFD', 'GPT', 'TRT', 'fixProp']] = np.vstack(predictions)
     return predict_df

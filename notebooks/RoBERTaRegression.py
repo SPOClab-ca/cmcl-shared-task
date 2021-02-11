@@ -46,10 +46,10 @@ valid_df = pd.read_csv("../data/training_data/valid.csv")
 model_trainer = src.model.ModelTrainer()
 
 
-# In[4]:
+# In[ ]:
 
 
-model_trainer.train(train_df)
+model_trainer.train(train_df, valid_df, num_epochs=200)
 
 
 # ## Make predictions
@@ -58,9 +58,16 @@ model_trainer.train(train_df)
 
 
 predict_df = model_trainer.predict(valid_df)
+predict_df
 
 
 # In[6]:
+
+
+predict_df.to_csv("predictions.csv", index=False)
+
+
+# In[7]:
 
 
 src.eval_metric.evaluate(predict_df, valid_df)
