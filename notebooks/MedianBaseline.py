@@ -19,6 +19,11 @@ from collections import defaultdict, Counter
 import random
 import math
 import pickle
+import string
+
+import wordfreq
+from sklearn.linear_model import LinearRegression
+from sklearn.svm import SVR
 
 import src.eval_metric
 
@@ -39,15 +44,67 @@ valid_df = pd.read_csv("../data/training_data/valid.csv")
 # In[3]:
 
 
+output_var_names = ['nFix', 'FFD', 'GPT', 'TRT', 'fixProp']
 predict_df = valid_df.copy()
-predict_df['nFix'] = train_df['nFix'].median()
-predict_df['FFD'] = train_df['FFD'].median()
-predict_df['GPT'] = train_df['GPT'].median()
-predict_df['TRT'] = train_df['TRT'].median()
-predict_df['fixProp'] = train_df['fixProp'].median()
+for feat_name in output_var_names:
+  predict_df[feat_name] = train_df[feat_name].median()
 
 
 # In[4]:
+
+
+src.eval_metric.evaluate(predict_df, valid_df)
+
+
+# ## Simple Feature-based Regression
+
+# In[5]:
+
+
+input_var_names = ['length', 'logfreq', 'has_upper', 'has_punct']
+def get_features(token):
+  token = token.replace('<EOS>', '')
+  return pd.Series({
+    'length': len(token),
+    'logfreq': wordfreq.zipf_frequency(token, 'en'),
+    'has_upper': 0 if token.lower() == token else 1,
+    'has_punct': 1 if any(j in string.punctuation for j in token) else 0,
+  })
+
+def clip_to_100(val):
+  if val < 0:
+    return 0
+  if val > 100:
+    return 100
+  return val
+
+
+# In[6]:
+
+
+train_df[input_var_names] = train_df.word.apply(get_features)
+
+
+# In[7]:
+
+
+valid_df[input_var_names] = valid_df.word.apply(get_features)
+
+
+# In[11]:
+
+
+predict_df = valid_df.copy()
+for feat_name in output_var_names:
+  #model = LinearRegression()
+  model = SVR()
+  
+  model.fit(train_df[input_var_names], train_df[feat_name])
+  predict_df[feat_name] = model.predict(predict_df[input_var_names])
+  predict_df[feat_name] = predict_df[feat_name].apply(clip_to_100)
+
+
+# In[12]:
 
 
 src.eval_metric.evaluate(predict_df, valid_df)
