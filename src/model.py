@@ -12,10 +12,14 @@ class RobertaRegressionModel(torch.nn.Module):
   def __init__(self, model_name='roberta-base'):
     super(RobertaRegressionModel, self).__init__()
 
-    self.roberta = transformers.RobertaModel.from_pretrained(model_name)
+    if 'roberta' in model_name:
+      self.roberta = transformers.RobertaModel.from_pretrained(model_name)
+    elif 'bert' in model_name:
+      self.roberta = transformers.BertModel.from_pretrained(model_name)
 
+    EMBED_SIZE = 1024 if 'large' in model_name else 768
     self.decoder = torch.nn.Sequential(
-      torch.nn.Linear(768, 5)
+      torch.nn.Linear(EMBED_SIZE, 5)
     )
 
 
@@ -43,11 +47,12 @@ class ModelTrainer():
   """Handles training and prediction given CSV"""
 
   def __init__(self, model_name='roberta-base'):
+    self.model_name = model_name
     self.model = RobertaRegressionModel(model_name).to(device)
 
 
   def train(self, train_df, valid_df=None, num_epochs=5, lr=5e-5, batch_size=16):
-    train_data = src.dataloader.EyeTrackingCSV(train_df)
+    train_data = src.dataloader.EyeTrackingCSV(train_df, model_name=self.model_name)
 
     random.seed(12345)
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
@@ -74,7 +79,7 @@ class ModelTrainer():
 
 
   def predict(self, valid_df):
-    valid_data = src.dataloader.EyeTrackingCSV(valid_df)
+    valid_data = src.dataloader.EyeTrackingCSV(valid_df, model_name=self.model_name)
     valid_loader = torch.utils.data.DataLoader(valid_data, batch_size=16)
 
     predict_df = valid_df.copy()

@@ -5,6 +5,7 @@ class EyeTrackingCSV(torch.utils.data.Dataset):
   """Tokenize sentences and load them into tensors. Assume dataframe has sentence_id."""
 
   def __init__(self, df, model_name='roberta-base'):
+    self.model_name = model_name
     self.df = df.copy()
 
     # Re-number the sentence ids, assuming they are [N, N+1, ...] for some N
@@ -20,7 +21,10 @@ class EyeTrackingCSV(torch.utils.data.Dataset):
       self.texts.append(text)
 
     # Tokenize all sentences
-    self.tokenizer = transformers.RobertaTokenizerFast.from_pretrained(model_name, add_prefix_space=True)
+    if 'roberta' in model_name:
+      self.tokenizer = transformers.RobertaTokenizerFast.from_pretrained(model_name, add_prefix_space=True)
+    elif 'bert' in model_name:
+      self.tokenizer = transformers.BertTokenizerFast.from_pretrained(model_name, add_prefix_space=True)
     self.ids = self.tokenizer(self.texts, padding=True, is_split_into_words=True, return_offsets_mapping=True)
 
 
@@ -35,7 +39,10 @@ class EyeTrackingCSV(torch.utils.data.Dataset):
     input_tokens = [self.tokenizer.convert_ids_to_tokens(x) for x in input_ids]
 
     # First subword of each token starts with special character
-    is_first_subword = [t[0] == 'Ġ' for t in input_tokens]
+    if 'roberta' in self.model_name:
+      is_first_subword = [t[0] == 'Ġ' for t in input_tokens]
+    elif 'bert' in self.model_name:
+      is_first_subword = [t0 == 0 and t1 > 0 for t0, t1 in offset_mapping]
 
     features = -torch.ones((len(input_ids), 5))
     features[is_first_subword] = torch.Tensor(
