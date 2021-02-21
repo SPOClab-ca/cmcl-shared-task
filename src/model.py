@@ -51,7 +51,7 @@ class ModelTrainer():
     self.model = RobertaRegressionModel(model_name).to(device)
 
 
-  def train(self, train_df, valid_df=None, num_epochs=5, lr=5e-5, batch_size=16):
+  def train(self, train_df, valid_df=None, num_epochs=5, lr=5e-5, batch_size=16, feature_ids=[0,1,2,3,4]):
     train_data = src.dataloader.EyeTrackingCSV(train_df, model_name=self.model_name)
 
     random.seed(12345)
@@ -68,7 +68,7 @@ class ModelTrainer():
         Y_true = Y_true.to(device)
         predict_mask = torch.sum(Y_true, axis=2) >= 0
         Y_pred = self.model(X_ids, X_attns, predict_mask)
-        loss = mse(Y_true, Y_pred)
+        loss = mse(Y_true[:,:,feature_ids], Y_pred[:,:,feature_ids])
         loss.backward()
         opt.step()
 
