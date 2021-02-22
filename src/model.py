@@ -56,7 +56,7 @@ class ModelTrainer():
 
     random.seed(12345)
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
-    opt = torch.optim.Adam(self.model.parameters(), lr=lr)
+    opt = torch.optim.AdamW(self.model.parameters(), lr=lr)
     mse = torch.nn.MSELoss()
 
     self.model.train()

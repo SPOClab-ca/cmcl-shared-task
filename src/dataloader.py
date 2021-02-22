@@ -1,6 +1,8 @@
 import torch
 import transformers
 
+FEATURES_NAMES = ['nFix', 'FFD', 'GPT', 'TRT', 'fixProp']
+
 class EyeTrackingCSV(torch.utils.data.Dataset):
   """Tokenize sentences and load them into tensors. Assume dataframe has sentence_id."""
 
@@ -46,7 +48,7 @@ class EyeTrackingCSV(torch.utils.data.Dataset):
 
     features = -torch.ones((len(input_ids), 5))
     features[is_first_subword] = torch.Tensor(
-      self.df[self.df.sentence_id == ix][['nFix', 'FFD', 'GPT', 'TRT', 'fixProp']].to_numpy()
+      self.df[self.df.sentence_id == ix][FEATURES_NAMES].to_numpy()
     )
 
     return (
