@@ -44,6 +44,7 @@ df = pd.DataFrame({
   'text_id': df_raw['Text_ID'],
   'orig_sentence_id': df_raw['Sentence_Number'],
   'word_id': df_raw['Word_In_Sentence_Number'],
+  'word': df_raw['Word'],
   'nFix': df_raw['IA_FIXATION_COUNT'],
   'FFD': df_raw['IA_FIRST_FIXATION_DURATION'],
   'GPT': df_raw['IA_REGRESSION_PATH_DURATION'],
@@ -59,9 +60,54 @@ df['TRT'] = df['TRT'].astype(float)
 # In[4]:
 
 
-# Todo: start from 0
-(df['text_id'].astype(str) + '_' + df['orig_sentence_id'].astype(str)).astype('category').cat.codes
+# Renumber sentences ids from original (text id, sentence id) starting from 0
+df = df[~((df.orig_sentence_id == 0) | (df.word_id == 0))]
+id_map = {}
+for _, row in df.iterrows():
+  k = (row['text_id'], row['orig_sentence_id'])
+  if k in id_map:
+    v = id_map[k]
+  else:
+    v = len(id_map)
+    id_map[k] = v
+
+df['sentence_id'] = df.apply(lambda row: id_map[(row['text_id'], row['orig_sentence_id'])], axis=1)
+df = df[['participant_id', 'sentence_id', 'word_id', 'word', 'nFix', 'FFD', 'GPT', 'TRT']]
 
 
 # ## Take averages across participants
-df.groupby(['sentence_id', 'word_id'])['nFix'].apply(lambda column: column.sum()/(column != 0).sum())df.head(50)
+
+# In[5]:
+
+
+agg_df = df.groupby(['sentence_id', 'word_id', 'word']).mean().reset_index()
+agg_df['fixProp'] = df.groupby(['sentence_id', 'word_id', 'word'])['nFix']   .apply(lambda col: (col != 0).sum() / len(col)).reset_index()['nFix']
+
+
+# In[6]:
+
+
+# Scale to [0, 100]
+agg_fts = agg_df[['nFix', 'FFD', 'GPT', 'TRT', 'fixProp']]
+agg_df[['nFix', 'FFD', 'GPT', 'TRT', 'fixProp']] = (agg_fts - agg_fts.min(axis=0)) / (agg_fts.max(axis=0) - agg_fts.min(axis=0)) * 100
+
+
+# In[7]:
+
+
+agg_df.to_csv('../data/provo.csv', index=False)
+
+
+# ## Sanity check
+
+# In[8]:
+
+
+agg_df.describe()
+
+
+# In[9]:
+
+
+sns.pairplot(agg_df[['nFix', 'FFD', 'GPT', 'TRT', 'fixProp']])
+
