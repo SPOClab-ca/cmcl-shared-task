@@ -77,22 +77,28 @@ df = df[['participant_id', 'sentence_id', 'word_id', 'word', 'nFix', 'FFD', 'GPT
 
 # ## Take averages across participants
 
-# In[5]:
+# In[10]:
 
 
 agg_df = df.groupby(['sentence_id', 'word_id', 'word']).mean().reset_index()
 agg_df['fixProp'] = df.groupby(['sentence_id', 'word_id', 'word'])['nFix']   .apply(lambda col: (col != 0).sum() / len(col)).reset_index()['nFix']
 
 
-# In[6]:
+# In[11]:
 
 
-# Scale to [0, 100]
+# Scale to have the same mean and standard deviation as ZuCo data
 agg_fts = agg_df[['nFix', 'FFD', 'GPT', 'TRT', 'fixProp']]
-agg_df[['nFix', 'FFD', 'GPT', 'TRT', 'fixProp']] = (agg_fts - agg_fts.min(axis=0)) / (agg_fts.max(axis=0) - agg_fts.min(axis=0)) * 100
+agg_df[['nFix', 'FFD', 'GPT', 'TRT', 'fixProp']] = (agg_fts - agg_fts.mean(axis=0)) / agg_fts.std(axis=0)
+
+agg_df['nFix'] = 15.10 + 9.42 * agg_df['nFix']
+agg_df['FFD'] = 3.19 + 1.42 * agg_df['FFD']
+agg_df['GPT'] = 6.35 + 5.91 * agg_df['GPT']
+agg_df['TRT'] = 5.31 + 3.64 * agg_df['TRT']
+agg_df['fixProp'] = 67.06 + 26.06 * agg_df['fixProp']
 
 
-# In[7]:
+# In[12]:
 
 
 agg_df.to_csv('../data/provo.csv', index=False)
@@ -100,13 +106,13 @@ agg_df.to_csv('../data/provo.csv', index=False)
 
 # ## Sanity check
 
-# In[8]:
+# In[13]:
 
 
 agg_df.describe()
 
 
-# In[9]:
+# In[14]:
 
 
 sns.pairplot(agg_df[['nFix', 'FFD', 'GPT', 'TRT', 'fixProp']])

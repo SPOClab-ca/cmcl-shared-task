@@ -36,6 +36,7 @@ pd.options.display.max_rows = 100
 
 train_df = pd.read_csv("../data/training_data/train.csv")
 valid_df = pd.read_csv("../data/training_data/valid.csv")
+provo_df = pd.read_csv("../data/provo.csv")
 
 
 # ## Fine-tune model
@@ -49,12 +50,18 @@ model_trainer = src.model.ModelTrainer()
 # In[ ]:
 
 
-model_trainer.train(train_df, valid_df, num_epochs=200)
+model_trainer.train(provo_df, num_epochs=100)
+
+
+# In[ ]:
+
+
+model_trainer.train(train_df, valid_df, num_epochs=150)
 
 
 # ## Make predictions
 
-# In[5]:
+# In[ ]:
 
 
 predict_df = model_trainer.predict(valid_df)
@@ -67,7 +74,7 @@ predict_df
 predict_df.to_csv("predictions.csv", index=False)
 
 
-# In[7]:
+# In[ ]:
 
 
 src.eval_metric.evaluate(predict_df, valid_df)

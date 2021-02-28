@@ -2,4 +2,4 @@
 
 Description: https://competitions.codalab.org/competitions/28176
 
-Team: Bai Li, Jeanne Sinclair, Frank Rudzicz
+Team: Bai Li, Frank Rudzicz

@@ -34,10 +34,10 @@ provo_df = pd.read_csv("data/provo.csv")
 
 for ensemble_ix in range(NUM_ENSEMBLES):
   model_trainer = src.model.ModelTrainer(model_name='roberta-base')
-  model_trainer.train(provo_df, num_epochs=250)
+  model_trainer.train(provo_df, num_epochs=100)
   if MODE == 'dev':
     model_trainer.train(train_df, valid_df, num_epochs=150)
   else:
-    model_trainer.train(train_df, num_epochs=110)
+    model_trainer.train(train_df, num_epochs=120)
   predict_df = model_trainer.predict(valid_df)
   predict_df.to_csv(f"scripts/predict-{ensemble_ix}.csv", index=False)
