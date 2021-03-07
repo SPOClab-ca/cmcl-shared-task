@@ -13,4 +13,5 @@ df_num[df_num < 0] = 0
 df_num[df_num > 100] = 100
 mean_df.to_csv('scripts/ensemble-result.csv', index=False)
 
-src.eval_metric.evaluate(mean_df, valid_df)
+if len(mean_df) == len(valid_df):
+  src.eval_metric.evaluate(mean_df, valid_df)

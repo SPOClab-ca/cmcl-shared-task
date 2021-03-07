@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import transformers
 
-import src
+import src.dataloader
 
 
 device = torch.device('cuda')

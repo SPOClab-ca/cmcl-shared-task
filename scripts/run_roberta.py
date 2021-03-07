@@ -1,29 +1,25 @@
 import sys
 sys.path.append('../')
 
-import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-import tqdm
-import torch
-from collections import defaultdict, Counter
-import random
-import math
-import pickle
+import argparse
 
-import src.eval_metric
 import src.model
-import src.dataloader
 
 
-NUM_ENSEMBLES = 10
+parser = argparse.ArgumentParser()
+
+parser.add_argument('--num-ensembles', type=int)
+parser.add_argument('--use-provo', type=bool)
 
 # dev: use our own train/valid split
 # submission: use all data and make predictions on unknown data
-MODE = 'submission'
+parser.add_argument('--mode', type=str)
 
-if MODE == 'dev':
+args = parser.parse_args()
+
+
+if args.mode == 'dev':
   train_df = pd.read_csv("data/training_data/train.csv")
   valid_df = pd.read_csv("data/training_data/valid.csv")
 else:
@@ -32,12 +28,16 @@ else:
 
 provo_df = pd.read_csv("data/provo.csv")
 
-for ensemble_ix in range(NUM_ENSEMBLES):
+for ensemble_ix in range(args.num_ensembles):
   model_trainer = src.model.ModelTrainer(model_name='roberta-base')
-  model_trainer.train(provo_df, num_epochs=100)
-  if MODE == 'dev':
+
+  if args.use_provo:
+    model_trainer.train(provo_df, num_epochs=100)
+
+  if args.mode == 'dev':
     model_trainer.train(train_df, valid_df, num_epochs=150)
   else:
     model_trainer.train(train_df, num_epochs=120)
+
   predict_df = model_trainer.predict(valid_df)
   predict_df.to_csv(f"scripts/predict-{ensemble_ix}.csv", index=False)
