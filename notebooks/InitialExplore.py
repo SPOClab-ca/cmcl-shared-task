@@ -30,23 +30,33 @@ pd.options.display.max_rows = 100
 # In[2]:
 
 
-df = pd.read_csv("../data/training_data/training_data.csv")
+df = pd.read_csv("../data/training_data/train_and_valid.csv")
+#df = pd.read_csv("../data/provo.csv")
 
 
-# In[14]:
+# In[3]:
 
 
 df[df.sentence_id == 2]
 
 
-# In[7]:
+# In[4]:
 
 
 df.describe()
 
 
-# In[11]:
+# In[ ]:
 
 
-sns.pairplot(df[['nFix', 'FFD', 'GPT', 'TRT', 'fixProp']])
+sns.set_style("white")
+g = sns.pairplot(df[['nFix', 'FFD', 'GPT', 'TRT', 'fixProp']],
+                 corner=True, height=1.2, plot_kws={'edgecolor':"none", 's':3})
+#g.set(xlim=(0, 100))
+g.axes[0, 0].set_xlim((0, 100))
+g.axes[1, 1].set_xlim((0, 12))
+g.axes[2, 2].set_xlim((0, 70))
+g.axes[3, 3].set_xlim((0, 40))
+g.axes[4, 4].set_xlim((0, 100))
+plt.show()
 
